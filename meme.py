@@ -2,7 +2,7 @@ import logging
 import os
 import time
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackContext, ApplicationBuilder
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
 import openai
@@ -80,15 +80,12 @@ def main() -> None:
         logger.error("API key or token not found. Make sure to set OPENAI_API_KEY and TELEGRAM_BOT_TOKEN environment variables.")
         return
 
-    updater = Updater(TOKEN)
+    application = ApplicationBuilder().token(TOKEN).build()
 
-    dispatcher = updater.dispatcher
+    application.add_handler(CommandHandler("meme", meme))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, meme_caption))
 
-    dispatcher.add_handler(CommandHandler("meme", meme))
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, meme_caption))
-
-    updater.start_polling()
-    updater.idle()
+    application.run_polling()
 
 if __name__ == '__main__':
     main()
