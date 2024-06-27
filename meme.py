@@ -49,8 +49,7 @@ def generate_meme(prompt: str) -> BytesIO:
             model="dall-e-3",
             prompt=full_prompt,
             n=1,
-            size="1024x1024",
-            quality="standard"
+            size="1024x1024"
         )
 
         # Log the response for debugging
