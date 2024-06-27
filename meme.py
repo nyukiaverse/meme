@@ -1,10 +1,11 @@
 import logging
 import os
+import subprocess
+import json
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
 from io import BytesIO
 from PIL import Image
-import openai
 import requests
 from tenacity import retry, stop_after_attempt, wait_fixed
 
@@ -16,8 +17,9 @@ logger = logging.getLogger(__name__)
 openai_api_key = os.getenv('OPENAI_API_KEY')
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 
-# Set the OpenAI API key
-openai.api_key = openai_api_key
+if not openai_api_key:
+    logger.error("API key not found in environment. Please set OPENAI_API_KEY.")
+    exit()
 
 async def meme(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text('Send me a caption or idea for the bee meme.')
@@ -34,8 +36,7 @@ def generate_meme(prompt: str) -> BytesIO:
         BytesIO: The generated image in a bytes buffer.
     
     Raises:
-        openai.error.OpenAIError: If an error occurs with the OpenAI API.
-        requests.RequestException: If a network error occurs.
+        subprocess.CalledProcessError: If an error occurs during the cURL request.
     """
     try:
         # Add context to the user's input without including text in the final image
@@ -44,29 +45,44 @@ def generate_meme(prompt: str) -> BytesIO:
         # Log the full prompt for debugging
         logger.debug(f"Full prompt: {full_prompt}")
 
-        # Call OpenAI's API to generate the context image
-        response = openai.Image.create(
-            model="dall-e-3",
-            prompt=full_prompt,
-            n=1,
-            size="1024x1024"
-        )
+        # JSON data for the API request
+        data = json.dumps({
+            "model": "dall-e-3",
+            "prompt": full_prompt,
+            "n": 1,
+            "size": "1024x1024",
+            "quality": "hd",
+            "response_format": "url"
+        })
+
+        # Constructing the cURL command for the API request
+        curl_command = [
+            "curl", "-X", "POST", "https://api.openai.com/v1/images/generations",
+            "-H", "Content-Type: application/json",
+            "-H", f"Authorization: Bearer {openai_api_key}",
+            "-d", data
+        ]
+
+        # Executing the cURL command and capturing the response
+        response = subprocess.run(curl_command, capture_output=True, text=True, check=True)
+        response_data = json.loads(response.stdout)
 
         # Log the response for debugging
-        logger.debug(f"OpenAI API response: {response}")
+        logger.debug(f"OpenAI API response: {response_data}")
 
         # Extract the URL of the generated image from the response
-        image_url = response['data'][0]['url']
+        image_url = response_data['data'][0]['url']
+
         # Download the generated image
         response_image = Image.open(BytesIO(requests.get(image_url).content))
-        
+
         # Save the generated image to a bytes buffer
         output = BytesIO()
         response_image.save(output, format='PNG')
         output.seek(0)
         return output
-    except openai.error.OpenAIError as e:
-        logger.error(f"OpenAI API error: {e}")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Error occurred during cURL request: {e}")
         raise
     except requests.RequestException as e:
         logger.error(f"Network error: {e}")
