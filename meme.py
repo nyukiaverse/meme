@@ -37,8 +37,11 @@ def generate_meme(prompt: str) -> BytesIO:
             "size": "1024x1024"
         }
 
+        logger.info(f"Request payload: {json.dumps(data, indent=2)}")
         response = requests.post("https://api.openai.com/v1/images/generations", headers=headers, data=json.dumps(data))
         response.raise_for_status()
+        logger.info(f"Response status: {response.status_code}")
+        logger.info(f"Response content: {response.content}")
 
         image_url = response.json()['data'][0]['url']
         response_image = Image.open(BytesIO(requests.get(image_url).content))
@@ -50,6 +53,7 @@ def generate_meme(prompt: str) -> BytesIO:
         return output
     except requests.RequestException as e:
         logger.error(f"Network error: {e}")
+        logger.error(f"Response content: {e.response.content if e.response else 'No response content'}")
         raise
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
