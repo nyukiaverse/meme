@@ -1,10 +1,10 @@
 import logging
 import os
+import json
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
 from io import BytesIO
 from PIL import Image
-import openai
 import requests
 from tenacity import retry, stop_after_attempt, wait_fixed
 
@@ -13,7 +13,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 # OpenAI API key and Telegram bot token from environment variables
-openai.api_key = os.getenv('OPENAI_API_KEY')
+openai_api_key = os.getenv('OPENAI_API_KEY')
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 
 async def meme(update: Update, context: CallbackContext) -> None:
@@ -26,26 +26,28 @@ def generate_meme(prompt: str) -> BytesIO:
         full_prompt = f"A busy bee mining coins using a CPU computer. The bee is doing this in a context where {prompt}. The image should be symbolic and contain no text."
 
         # Call OpenAI's API to generate the context image
-        response = openai.Image.create(
-            prompt=full_prompt,
-            n=1,
-            size="512x512"
-        )
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {openai_api_key}"
+        }
+        data = {
+            "model": "dall-e-3",
+            "prompt": full_prompt,
+            "n": 1,
+            "size": "1024x1024"
+        }
 
-        # Extract the URL of the generated image
-        image_url = response['data'][0]['url']
-        
-        # Download and open the generated image
+        response = requests.post("https://api.openai.com/v1/images/generations", headers=headers, data=json.dumps(data))
+        response.raise_for_status()
+
+        image_url = response.json()['data'][0]['url']
         response_image = Image.open(BytesIO(requests.get(image_url).content))
         
-        # Save the combined image to a bytes buffer
+        # Save the generated image to a bytes buffer
         output = BytesIO()
         response_image.save(output, format='PNG')
         output.seek(0)
         return output
-    except openai.error.OpenAIError as e:
-        logger.error(f"OpenAI API error: {e}")
-        raise
     except requests.RequestException as e:
         logger.error(f"Network error: {e}")
         raise
@@ -73,7 +75,7 @@ async def meme_caption(update: Update, context: CallbackContext) -> None:
 
 def main() -> None:
     # Check if the API key and token are available
-    if not openai.api_key or not TOKEN:
+    if not openai_api_key or not TOKEN:
         logger.error("API key or token not found. Make sure to set OPENAI_API_KEY and TELEGRAM_BOT_TOKEN environment variables.")
         return
 
