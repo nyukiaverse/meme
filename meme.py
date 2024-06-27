@@ -51,6 +51,9 @@ def generate_meme(prompt: str) -> BytesIO:
         combined_image.save(output, format='PNG')
         output.seek(0)
         return output
+    except FileNotFoundError as e:
+        logger.error(f"File not found: {e}")
+        raise
     except openai.error.OpenAIError as e:
         logger.error(f"OpenAI API error: {e}")
         raise
