@@ -13,14 +13,10 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 # OpenAI API key and Telegram bot token from environment variables
-openai_api_key = os.getenv('OPENAI_API_KEY')
+openai.api_key = os.getenv('OPENAI_API_KEY')
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 
-# Initialize OpenAI client with the API key
-openai.api_key = openai_api_key
-
 async def meme(update: Update, context: CallbackContext) -> None:
-    """Handle the /meme command by prompting the user for a meme caption."""
     await update.message.reply_text('Send me a caption or idea for the bee meme.')
 
 @retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
@@ -42,6 +38,9 @@ def generate_meme(prompt: str) -> BytesIO:
         # Add context to the user's input without including text in the final image
         full_prompt = f"A busy bee mining coins using a CPU computer. The bee is doing this in a context where {prompt}. The image should be symbolic and contain no text."
 
+        # Log the full prompt for debugging
+        logger.debug(f"Full prompt: {full_prompt}")
+
         # Call OpenAI's API to generate the context image
         response = openai.Image.create(
             model="dall-e-3",
@@ -49,6 +48,9 @@ def generate_meme(prompt: str) -> BytesIO:
             n=1,
             size="1024x1024"
         )
+
+        # Log the response for debugging
+        logger.debug(f"OpenAI API response: {response}")
 
         # Extract the URL of the generated image from the response
         image_url = response['data'][0]['url']
