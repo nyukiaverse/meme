@@ -1,8 +1,7 @@
 import logging
 import os
-import time
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackContext, ApplicationBuilder
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
 import openai
@@ -17,14 +16,17 @@ logger = logging.getLogger(__name__)
 openai.api_key = os.getenv('OPENAI_API_KEY')
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 
-def meme(update: Update, _: CallbackContext) -> None:
-    update.message.reply_text('Send me a caption or idea for the bee meme.')
+async def meme(update: Update, _: CallbackContext) -> None:
+    await update.message.reply_text('Send me a caption or idea for the bee meme.')
 
 @retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
 def generate_meme(prompt: str) -> BytesIO:
     try:
         # Load the bee template image
-        template = Image.open('bee_template.png')
+        template_path = 'bee_template.png'
+        if not os.path.isfile(template_path):
+            raise FileNotFoundError(f"{template_path} not found.")
+        template = Image.open(template_path)
 
         # Add context to the user's input without including text in the final image
         full_prompt = f"A busy bee mining coins using a CPU computer. The bee is doing this in a context where {prompt}. The image should be symbolic and contain no text."
@@ -49,7 +51,7 @@ def generate_meme(prompt: str) -> BytesIO:
         combined_image.save(output, format='PNG')
         output.seek(0)
         return output
-    except openai.error.OpenAIAPIError as e:
+    except openai.error.OpenAIError as e:
         logger.error(f"OpenAI API error: {e}")
         raise
     except requests.RequestException as e:
@@ -59,20 +61,23 @@ def generate_meme(prompt: str) -> BytesIO:
         logger.error(f"Unexpected error: {e}")
         raise
 
-def meme_caption(update: Update, context: CallbackContext) -> None:
+async def meme_caption(update: Update, context: CallbackContext) -> None:
     user = update.message.from_user
     caption = update.message.text
     logger.info("Caption from %s: %s", user.first_name, caption)
 
     # Generate meme
-    meme_image = generate_meme(caption)
-
-    if meme_image:
-        # Send the meme back to the user
-        update.message.reply_photo(photo=meme_image)
-    else:
-        # Inform the user about the error
-        update.message.reply_text("Sorry, there was an error generating your meme. Please try a different caption.")
+    try:
+        meme_image = generate_meme(caption)
+        if meme_image:
+            # Send the meme back to the user
+            await update.message.reply_photo(photo=meme_image)
+        else:
+            # Inform the user about the error
+            await update.message.reply_text("Sorry, there was an error generating your meme. Please try a different caption.")
+    except Exception as e:
+        logger.error(f"Error generating meme: {e}")
+        await update.message.reply_text("Sorry, there was an error generating your meme. Please try a different caption.")
 
 def main() -> None:
     # Check if the API key and token are available
