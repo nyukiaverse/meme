@@ -3,7 +3,7 @@ import os
 import subprocess
 import json
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackContext
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
 from io import BytesIO
 from PIL import Image
 import requests
@@ -21,6 +21,9 @@ if not openai_api_key:
     logger.error("API key not found in environment. Please set OPENAI_API_KEY.")
     exit()
 
+async def meme(update: Update, context: CallbackContext) -> None:
+    await update.message.reply_text('Enter your Country/City/Town or Village to create your Happy Bee Miner?')
+
 @retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
 def generate_meme(prompt: str) -> BytesIO:
     """
@@ -37,7 +40,7 @@ def generate_meme(prompt: str) -> BytesIO:
     """
     try:
         # Add context to the user's input without including text in the final image
-        full_prompt = f"A cheeky honeybee that looks like pepe the frog mining green hexagonal coins using a CPU computer that looks like a hexagonal box. The bee is doing this in the country or city or town or village of {prompt}. The meme should be in pepe the symbolic frog meme style and contain no text at all."
+        full_prompt = f"A cheeky bee that looks like pepe the frog mining green hexagonal coins using a CPU computer that looks like a hexagonal box. The bee is doing this in the country or city or town or village of {prompt}. The meme should be in pepe the symbolic frog meme style and contain no text at all."
 
         # Log the full prompt for debugging
         logger.debug(f"Full prompt: {full_prompt}")
@@ -70,8 +73,6 @@ def generate_meme(prompt: str) -> BytesIO:
         # Check for the 'data' key in the response
         if 'data' not in response_data:
             logger.error(f"API response does not contain 'data' key: {response_data}")
-            if 'error' in response_data and response_data['error']['code'] == 'billing_hard_limit_reached':
-                raise RuntimeError("Billing limit reached. Cannot generate more images.")
             raise KeyError("'data' key not found in the API response")
 
         # Extract the URL of the generated image from the response
@@ -97,35 +98,24 @@ def generate_meme(prompt: str) -> BytesIO:
         logger.error(f"Unexpected error: {e}")
         raise
 
-async def meme_command(update: Update, context: CallbackContext) -> None:
-    """Handle the /meme command by generating a meme based on the user's location input."""
+async def meme_caption(update: Update, context: CallbackContext) -> None:
+    """Handle text messages by generating a meme based on the user's caption."""
     user = update.message.from_user
+    caption = update.message.text
+    logger.info("Caption from %s: %s", user.first_name, caption)
+
+    # Generate meme
     try:
-        # Get the location from the command
-        location = ' '.join(context.args)
-        if not location:
-            await update.message.reply_text("Please provide a country, county, city, or village after the /meme command.")
-            return
-
-        logger.info("Location from %s: %s", user.first_name, location)
-
-        # Generate meme
-        meme_image = generate_meme(location)
+        meme_image = generate_meme(caption)
         if meme_image:
             # Send the meme back to the user
             await update.message.reply_photo(photo=meme_image)
         else:
             # Inform the user about the error
-            await update.message.reply_text("Sorry, there was an error generating your meme. Please try a different location.")
-    except RuntimeError as e:
-        if str(e) == "Billing limit reached. Cannot generate more images.":
-            await update.message.reply_text("Sorry, the billing limit for image generation has been reached. Please try again later.")
-        else:
-            logger.error(f"Runtime error: {e}")
-            await update.message.reply_text("Sorry, there was an error generating your meme. Please try a different location.")
+            await update.message.reply_text("Sorry, there was an error generating your meme. Please try a different caption.")
     except Exception as e:
         logger.error(f"Error generating meme: {e}")
-        await update.message.reply_text("Sorry, there was an error generating your meme. Please try a different location.")
+        await update.message.reply_text("Sorry, there was an error generating your meme. Please try a different caption.")
 
 def main() -> None:
     """Main function to run the Telegram bot."""
@@ -138,7 +128,8 @@ def main() -> None:
     application = ApplicationBuilder().token(TOKEN).build()
 
     # Add handlers for the bot commands and messages
-    application.add_handler(CommandHandler("meme", meme_command))
+    application.add_handler(CommandHandler("meme", meme))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, meme_caption))
 
     # Start the bot and run it until manually stopped
     application.run_polling()
