@@ -3,7 +3,7 @@ import os
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
 from io import BytesIO
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 import openai
 import requests
 from tenacity import retry, stop_after_attempt, wait_fixed
@@ -22,12 +22,6 @@ async def meme(update: Update, context: CallbackContext) -> None:
 @retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
 def generate_meme(prompt: str) -> BytesIO:
     try:
-        # Load the bee template image
-        template_path = 'bee_template.png'
-        if not os.path.isfile(template_path):
-            raise FileNotFoundError(f"{template_path} not found.")
-        template = Image.open(template_path)
-
         # Add context to the user's input without including text in the final image
         full_prompt = f"A busy bee mining coins using a CPU computer. The bee is doing this in a context where {prompt}. The image should be symbolic and contain no text."
 
@@ -38,22 +32,17 @@ def generate_meme(prompt: str) -> BytesIO:
             size="512x512"
         )
 
+        # Extract the URL of the generated image
         image_url = response['data'][0]['url']
+        
+        # Download and open the generated image
         response_image = Image.open(BytesIO(requests.get(image_url).content))
         
-        # Resize the response image to fit the template if necessary
-        response_image = response_image.resize((template.width, template.height))
-
-        # Combine the template and the response image
-        combined_image = Image.alpha_composite(template.convert('RGBA'), response_image.convert('RGBA'))
-
+        # Save the combined image to a bytes buffer
         output = BytesIO()
-        combined_image.save(output, format='PNG')
+        response_image.save(output, format='PNG')
         output.seek(0)
         return output
-    except FileNotFoundError as e:
-        logger.error(f"File not found: {e}")
-        raise
     except openai.error.OpenAIError as e:
         logger.error(f"OpenAI API error: {e}")
         raise
