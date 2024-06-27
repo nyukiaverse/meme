@@ -37,7 +37,7 @@ def generate_meme(prompt: str) -> BytesIO:
     """
     try:
         # Add context to the user's input without including text in the final image
-        full_prompt = f"A happy and cheeky honey bee that looks like pepe the frog wearing attire from {prompt}; mining green honey-coated hexagonal Coins using a CPU computer that looks like a hexagonal box in front of a picturesque and modern scene of {prompt}. This symbolic meme should contain no text at all."
+        full_prompt = f"Create an image featuring a happy and cheeky honey bee with a face resembling Pepe the Frog, wearing cultural attire of {prompt}. The bee is mining green honey-coated hexagonal coins using a CPU computer that looks like a hexagonal box. The scene is set in a picturesque and modern environment in {prompt}. The overall mood of the image should be lively and playful, capturing the humorous and symbolic nature of the meme. Ensure the image contains no text at all."
 
         # Log the full prompt for debugging
         logger.debug(f"Full prompt: {full_prompt}")
