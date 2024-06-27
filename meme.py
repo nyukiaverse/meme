@@ -27,7 +27,7 @@ async def meme(update: Update, context: CallbackContext) -> None:
 @retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
 def generate_meme(prompt: str) -> BytesIO:
     """
-    Generate a meme image based on the given prompt using the OpenAI API.
+    Generate a meme image based on the given prompt using the OpenAI API via a cURL command.
     
     Args:
         prompt (str): The text prompt for generating the meme.
