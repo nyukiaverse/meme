@@ -5,7 +5,6 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 from io import BytesIO
 from PIL import Image
 import openai
-from openai import OpenAI
 import requests
 from tenacity import retry, stop_after_attempt, wait_fixed
 
@@ -17,8 +16,6 @@ logger = logging.getLogger(__name__)
 openai.api_key = os.getenv('OPENAI_API_KEY')
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 
-client = OpenAI(api_key=openai.api_key)
-
 async def meme(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text('Send me a caption or idea for the bee meme.')
 
@@ -29,15 +26,13 @@ def generate_meme(prompt: str) -> BytesIO:
         full_prompt = f"A busy bee mining coins using a CPU computer. The bee is doing this in a context where {prompt}. The image should be symbolic and contain no text."
 
         # Call OpenAI's API to generate the context image
-        response = client.images.generate(
-            model="dall-e-3",
+        response = openai.Image.create(
             prompt=full_prompt,
-            size="1024x1024",
-            quality="standard",
             n=1,
+            size="1024x1024"
         )
 
-        image_url = response.data[0].url
+        image_url = response['data'][0]['url']
         response_image = Image.open(BytesIO(requests.get(image_url).content))
         
         # Save the generated image to a bytes buffer
