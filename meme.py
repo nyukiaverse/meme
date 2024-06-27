@@ -9,7 +9,7 @@ import requests
 from tenacity import retry, stop_after_attempt, wait_fixed
 
 # Configure logging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname=s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # OpenAI API key and Telegram bot token from environment variables
@@ -31,7 +31,7 @@ def generate_meme(prompt: str) -> BytesIO:
             "Authorization": f"Bearer {openai_api_key}"
         }
         data = {
-            "model": "dall-e-3",
+            "model": "image-alpha-001",  # Use the correct model name from OpenAI documentation
             "prompt": full_prompt,
             "n": 1,
             "size": "1024x1024"
