@@ -70,6 +70,11 @@ def generate_meme(prompt: str) -> BytesIO:
         # Log the response for debugging
         logger.debug(f"OpenAI API response: {response_data}")
 
+        # Check for the 'data' key in the response
+        if 'data' not in response_data:
+            logger.error(f"API response does not contain 'data' key: {response_data}")
+            raise KeyError("'data' key not found in the API response")
+
         # Extract the URL of the generated image from the response
         image_url = response_data['data'][0]['url']
 
