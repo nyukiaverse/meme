@@ -31,7 +31,7 @@ def generate_meme(prompt: str) -> BytesIO:
             "Authorization": f"Bearer {openai_api_key}"
         }
         data = {
-            "model": "image-alpha-001",  # Use the correct model name from OpenAI documentation
+            "model": "dall-e-3",  # Use the correct model name from OpenAI documentation
             "prompt": full_prompt,
             "n": 1,
             "size": "1024x1024"
