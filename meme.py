@@ -22,7 +22,7 @@ if not openai_api_key:
     exit()
 
 async def meme(update: Update, context: CallbackContext) -> None:
-    await update.message.reply_text('Send me a caption or idea for the bee meme.')
+    await update.message.reply_text('Enter your Country/City/Town or Village to create your Happy Bee Miner?')
 
 @retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
 def generate_meme(prompt: str) -> BytesIO:
@@ -40,7 +40,7 @@ def generate_meme(prompt: str) -> BytesIO:
     """
     try:
         # Add context to the user's input without including text in the final image
-        full_prompt = f"A busy bee mining coins using a CPU computer. The bee is doing this in a context where {prompt}. The image should be symbolic and contain no text."
+        full_prompt = f"A cheeky bee that looks like pepe mining green hexagonal coins using a CPU computer that looks like a hexagonal box. The bee is doing this in the country/city/town/village of {prompt}. The meme should be in tintin comic style as well as symbolic and contain no text at all."
 
         # Log the full prompt for debugging
         logger.debug(f"Full prompt: {full_prompt}")
