@@ -9,7 +9,7 @@ import requests
 from tenacity import retry, stop_after_attempt, wait_fixed
 
 # Configure logging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname=s - %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # OpenAI API key and Telegram bot token from environment variables
@@ -53,7 +53,8 @@ def generate_meme(prompt: str) -> BytesIO:
         return output
     except requests.RequestException as e:
         logger.error(f"Network error: {e}")
-        logger.error(f"Response content: {e.response.content if e.response else 'No response content'}")
+        if e.response:
+            logger.error(f"Response content: {e.response.content.decode()}")
         raise
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
