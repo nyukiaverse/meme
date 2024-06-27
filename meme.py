@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 openai.api_key = os.getenv('OPENAI_API_KEY')
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 
-async def meme(update: Update, _: CallbackContext) -> None:
+async def meme(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text('Send me a caption or idea for the bee meme.')
 
 @retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
