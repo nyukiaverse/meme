@@ -37,7 +37,7 @@ def generate_meme(prompt: str) -> BytesIO:
     """
     try:
         # Add context to the user's input without including text in the final image
-        full_prompt = f"A cheeky honeybee that looks like pepe the frog wearing attire from {prompt}; mining green hexagonal bitcoins using a CPU computer that looks like a hexagonal box in front of a picturesque scene of {prompt}. This symbolic meme should look like pepe the frog and contain no text at all."
+        full_prompt = f"A happy and cheeky honey bee that looks like pepe the frog wearing attire from {prompt}; mining green honey-coated hexagonal Coins using a CPU computer that looks like a hexagonal box in front of a picturesque and modern scene of {prompt}. This symbolic meme should contain no text at all."
 
         # Log the full prompt for debugging
         logger.debug(f"Full prompt: {full_prompt}")
@@ -112,8 +112,9 @@ async def meme_command(update: Update, context: CallbackContext) -> None:
         # Generate meme
         meme_image = generate_meme(location)
         if meme_image:
-            # Send the meme back to the user
+            # Send the meme back to the user with additional text
             await update.message.reply_photo(photo=meme_image)
+            await update.message.reply_text("Earn $WHIVE Coins here; http://Nyukia.AI")
         else:
             # Inform the user about the error
             await update.message.reply_text("Sorry, there was an error generating your meme. Please try a different location.")
