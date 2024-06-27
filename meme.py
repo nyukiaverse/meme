@@ -13,8 +13,11 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 # OpenAI API key and Telegram bot token from environment variables
-openai.api_key = os.getenv('OPENAI_API_KEY')
+openai_api_key = os.getenv('OPENAI_API_KEY')
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+
+# Set the OpenAI API key
+openai.api_key = openai_api_key
 
 async def meme(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text('Send me a caption or idea for the bee meme.')
@@ -46,7 +49,8 @@ def generate_meme(prompt: str) -> BytesIO:
             model="dall-e-3",
             prompt=full_prompt,
             n=1,
-            size="1024x1024"
+            size="1024x1024",
+            quality="standard"
         )
 
         # Log the response for debugging
@@ -96,7 +100,7 @@ async def meme_caption(update: Update, context: CallbackContext) -> None:
 def main() -> None:
     """Main function to run the Telegram bot."""
     # Check if the API key and token are available
-    if not openai.api_key or not TOKEN:
+    if not openai_api_key or not TOKEN:
         logger.error("API key or token not found. Make sure to set OPENAI_API_KEY and TELEGRAM_BOT_TOKEN environment variables.")
         return
 
