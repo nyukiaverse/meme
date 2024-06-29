@@ -22,7 +22,7 @@ if not openai_api_key:
     exit()
 
 @retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
-def generate_meme(prompt: str) -> Image:
+def generate_meme(prompt: str) -> BytesIO:
     """
     Generate a meme image based on the given prompt using the OpenAI API via a cURL command.
     
@@ -30,7 +30,7 @@ def generate_meme(prompt: str) -> Image:
         prompt (str): The text prompt for generating the meme.
 
     Returns:
-        Image: The generated image.
+        BytesIO: The generated image in a bytes buffer.
     
     Raises:
         subprocess.CalledProcessError: If an error occurs during the cURL request.
@@ -80,7 +80,11 @@ def generate_meme(prompt: str) -> Image:
         # Download the generated image
         response_image = Image.open(BytesIO(requests.get(image_url).content))
 
-        return response_image
+        # Save the generated image to a bytes buffer
+        output = BytesIO()
+        response_image.save(output, format='PNG')
+        output.seek(0)
+        return output
     except subprocess.CalledProcessError as e:
         logger.error(f"Error occurred during cURL request: {e}")
         raise
