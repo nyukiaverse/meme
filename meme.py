@@ -2,12 +2,13 @@ import logging
 import os
 import subprocess
 import json
-from telegram import Update, Chat
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackContext
+from telegram import Update, Chat, Bot
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
 from io import BytesIO
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 import requests
 from tenacity import retry, stop_after_attempt, wait_fixed
+import asyncio
 
 # Configure logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -121,7 +122,7 @@ async def meme_command(update: Update, context: CallbackContext) -> None:
         meme_image = generate_meme(location)
         if meme_image:
             # Send the meme back to the user with additional text
-            caption = f"{username}, \nMine $WHIVE - http://melanin.systems 🐝\nEarn $WHIVE - http://nyukia.ai 💸"
+            caption = f"Welcome {username} from {location}, \nMine $WHIVE - http://melanin.systems 🐝\nEarn $WHIVE - http://nyukia.ai 💸"
             await update.message.reply_photo(photo=meme_image)
             await update.message.reply_text(caption)
         else:
@@ -137,6 +138,20 @@ async def meme_command(update: Update, context: CallbackContext) -> None:
         logger.error(f"Error generating meme: {e}")
         await update.message.reply_text("Sorry, there was an error generating your meme. Please try a different location.")
 
+async def welcome_new_member(update: Update, context: CallbackContext) -> None:
+    """Welcome new members to the group and ask for their location."""
+    for member in update.message.new_chat_members:
+        username = member.username if member.username else member.first_name
+        welcome_message = f"Welcome {username}! Please share your country, county, city, or village to generate a custom meme."
+        message = await update.message.reply_text(welcome_message)
+
+        # Wait for 15 seconds and then delete the message if no response
+        await asyncio.sleep(15)
+        try:
+            await message.delete()
+        except Exception as e:
+            logger.error(f"Error deleting message: {e}")
+
 def main() -> None:
     """Main function to run the Telegram bot."""
     # Check if the API key and token are available
@@ -149,9 +164,11 @@ def main() -> None:
 
     # Add handlers for the bot commands and messages
     application.add_handler(CommandHandler("meme", meme_command))
+    application.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, welcome_new_member))
 
     # Start the bot and run it until manually stopped
     application.run_polling()
 
 if __name__ == '__main__':
     main()
+
