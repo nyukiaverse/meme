@@ -37,7 +37,7 @@ def generate_meme(prompt: str) -> Image:
     """
     try:
         # Add context to the user's input without including text in the final image
-        full_prompt = f"Create an portrait in comic style, featuring a happy and cheeky honey bee, wearing cultural attire of {prompt}. The bee is mining honey-coated hexagonal coins using a CPU computer that looks like a hexagonal box. The scene is set in a realistic picturesque and modern environment in {prompt}. The overall mood of the portrait should be lively and playful, capturing the humorous and symbolic nature of the meme. Ensure the portrait contains no text at all."
+        full_prompt = f"Create a portrait in comic style, featuring a happy and cheeky honey bee, wearing cultural attire of {prompt}. The bee is mining honey-coated hexagonal coins using a CPU computer that looks like a hexagonal box. The scene is set in a realistic picturesque and modern environment in {prompt}. The overall mood of the portrait should be lively and playful, capturing the humorous and symbolic nature of the meme. Ensure the portrait contains no text at all."
 
         # Log the full prompt for debugging
         logger.debug(f"Full prompt: {full_prompt}")
@@ -93,58 +93,6 @@ def generate_meme(prompt: str) -> Image:
         logger.error(f"Unexpected error: {e}")
         raise
 
-def add_caption_to_image(image: Image, username: str) -> BytesIO:
-    """
-    Add captions to the generated meme image.
-    
-    Args:
-        image (Image): The generated image.
-        username (str): The Telegram username of the user who requested the meme.
-
-    Returns:
-        BytesIO: The image with captions in a bytes buffer.
-    """
-    draw = ImageDraw.Draw(image)
-    font = ImageFont.load_default()  # Use a default font; you can specify a path to a .ttf file for custom fonts
-    
-    # Define texts
-    top_text = f"{username}, Mine or Earn $WHIVE"
-    bottom_text1 = "Mine $WHIVE - http://melanin.systems 🐝"
-    bottom_text2 = "Earn $WHIVE - http://nyukia.ai 💸"
-
-    # Calculate text sizes and positions using textbbox
-    image_width, image_height = image.size
-    top_text_bbox = draw.textbbox((0, 0), top_text, font=font)
-    bottom_text1_bbox = draw.textbbox((0, 0), bottom_text1, font=font)
-    bottom_text2_bbox = draw.textbbox((0, 0), bottom_text2, font=font)
-
-    top_text_width = top_text_bbox[2] - top_text_bbox[0]
-    top_text_height = top_text_bbox[3] - top_text_bbox[1]
-    bottom_text1_width = bottom_text1_bbox[2] - bottom_text1_bbox[0]
-    bottom_text1_height = bottom_text1_bbox[3] - bottom_text1_bbox[1]
-    bottom_text2_width = bottom_text2_bbox[2] - bottom_text2_bbox[0]
-    bottom_text2_height = bottom_text2_bbox[3] - bottom_text2_bbox[1]
-    
-    x_top = (image_width - top_text_width) / 2
-    y_top = 10  # Top margin
-
-    x_bottom1 = (image_width - bottom_text1_width) / 2
-    y_bottom1 = image_height - bottom_text2_height - bottom_text1_height - 20  # Bottom margin
-
-    x_bottom2 = (image_width - bottom_text2_width) / 2
-    y_bottom2 = image_height - bottom_text2_height - 10  # Bottom margin
-    
-    # Add text to image
-    draw.text((x_top, y_top), top_text, font=font, fill="white")
-    draw.text((x_bottom1, y_bottom1), bottom_text1, font=font, fill="white")
-    draw.text((x_bottom2, y_bottom2), bottom_text2, font=font, fill="white")
-
-    # Save the image to a bytes buffer
-    output = BytesIO()
-    image.save(output, format='PNG')
-    output.seek(0)
-    return output
-
 async def meme_command(update: Update, context: CallbackContext) -> None:
     """Handle the /meme command by generating a meme based on the user's location input."""
     user = update.message.from_user
@@ -168,12 +116,10 @@ async def meme_command(update: Update, context: CallbackContext) -> None:
         # Generate meme
         meme_image = generate_meme(location)
         if meme_image:
-            # Add caption to the image
-            meme_with_caption = add_caption_to_image(meme_image, username)
-            
             # Send the meme back to the user with additional text
-            await update.message.reply_photo(photo=meme_with_caption)
-            await update.message.reply_text("Mine $WHIVE - http://melanin.systems 🐝\nEarn $WHIVE - http://nyukia.ai 💸")
+            caption = f"{username}, \nMine $WHIVE - http://melanin.systems 🐝\nEarn $WHIVE - http://nyukia.ai 💸"
+            await update.message.reply_photo(photo=meme_image)
+            await update.message.reply_text(caption)
         else:
             # Inform the user about the error
             await update.message.reply_text("Sorry, there was an error generating your meme. Please try a different location.")
