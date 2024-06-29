@@ -37,7 +37,7 @@ def generate_meme(prompt: str) -> Image:
     """
     try:
         # Add context to the user's input without including text in the final image
-        full_prompt = f"Create a portrait in comic style, featuring a happy and cheeky honey bee, wearing cultural attire of {prompt}. The bee is mining honey-coated hexagonal coins using a CPU computer that looks like a hexagonal box. The scene is set in a realistic picturesque and modern environment in {prompt}. The overall mood of the portrait should be lively and playful, capturing the humorous and symbolic nature of the meme. Ensure the portrait contains no text at all."
+        full_prompt = f"Create an portrait in comic style, featuring a happy and cheeky honey bee, wearing cultural attire of {prompt}. The bee is mining honey-coated hexagonal coins using a CPU computer that looks like a hexagonal box. The scene is set in a realistic picturesque and modern environment in {prompt}. The overall mood of the portrait should be lively and playful, capturing the humorous and symbolic nature of the meme. Ensure the portrait contains no text at all."
 
         # Log the full prompt for debugging
         logger.debug(f"Full prompt: {full_prompt}")
@@ -112,11 +112,18 @@ def add_caption_to_image(image: Image, username: str) -> BytesIO:
     bottom_text1 = "Mine $WHIVE - http://melanin.systems 🐝"
     bottom_text2 = "Earn $WHIVE - http://nyukia.ai 💸"
 
-    # Calculate text sizes and positions
+    # Calculate text sizes and positions using textbbox
     image_width, image_height = image.size
-    top_text_width, top_text_height = draw.textsize(top_text, font=font)
-    bottom_text1_width, bottom_text1_height = draw.textsize(bottom_text1, font=font)
-    bottom_text2_width, bottom_text2_height = draw.textsize(bottom_text2, font=font)
+    top_text_bbox = draw.textbbox((0, 0), top_text, font=font)
+    bottom_text1_bbox = draw.textbbox((0, 0), bottom_text1, font=font)
+    bottom_text2_bbox = draw.textbbox((0, 0), bottom_text2, font=font)
+
+    top_text_width = top_text_bbox[2] - top_text_bbox[0]
+    top_text_height = top_text_bbox[3] - top_text_bbox[1]
+    bottom_text1_width = bottom_text1_bbox[2] - bottom_text1_bbox[0]
+    bottom_text1_height = bottom_text1_bbox[3] - bottom_text1_bbox[1]
+    bottom_text2_width = bottom_text2_bbox[2] - bottom_text2_bbox[0]
+    bottom_text2_height = bottom_text2_bbox[3] - bottom_text2_bbox[1]
     
     x_top = (image_width - top_text_width) / 2
     y_top = 10  # Top margin
