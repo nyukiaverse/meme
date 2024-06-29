@@ -22,7 +22,7 @@ if not openai_api_key:
     exit()
 
 @retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
-def generate_meme(prompt: str) -> BytesIO:
+def generate_meme(prompt: str) -> Image:
     """
     Generate a meme image based on the given prompt using the OpenAI API via a cURL command.
     
@@ -30,14 +30,14 @@ def generate_meme(prompt: str) -> BytesIO:
         prompt (str): The text prompt for generating the meme.
 
     Returns:
-        BytesIO: The generated image in a bytes buffer.
+        Image: The generated image.
     
     Raises:
         subprocess.CalledProcessError: If an error occurs during the cURL request.
     """
     try:
         # Add context to the user's input without including text in the final image
-        full_prompt = f"Create an portrait in comic style, featuring a happy and cheeky honey bee, wearing cultural attire of {prompt}. The bee is mining honey-coated hexagonal coins using a CPU computer that looks like a hexagonal box. The scene is set in a realistic picturesque and modern environment in {prompt}. The overall mood of the portrait should be lively and playful, capturing the humorous and symbolic nature of the meme. Ensure the portrait contains no text at all."
+        full_prompt = f"Create a portrait in comic style, featuring a happy and cheeky honey bee, wearing cultural attire of {prompt}. The bee is mining honey-coated hexagonal coins using a CPU computer that looks like a hexagonal box. The scene is set in a realistic picturesque and modern environment in {prompt}. The overall mood of the portrait should be lively and playful, capturing the humorous and symbolic nature of the meme. Ensure the portrait contains no text at all."
 
         # Log the full prompt for debugging
         logger.debug(f"Full prompt: {full_prompt}")
@@ -166,6 +166,7 @@ async def meme_command(update: Update, context: CallbackContext) -> None:
             
             # Send the meme back to the user with additional text
             await update.message.reply_photo(photo=meme_with_caption)
+            await update.message.reply_text("Mine $WHIVE - http://melanin.systems 🐝\nEarn $WHIVE - http://nyukia.ai 💸")
         else:
             # Inform the user about the error
             await update.message.reply_text("Sorry, there was an error generating your meme. Please try a different location.")
@@ -195,5 +196,5 @@ def main() -> None:
     # Start the bot and run it until manually stopped
     application.run_polling()
 
-if __name__ == '__name__':
+if __name__ == '__main__':
     main()
