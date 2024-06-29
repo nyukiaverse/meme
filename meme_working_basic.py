@@ -2,7 +2,7 @@ import logging
 import os
 import subprocess
 import json
-from telegram import Update
+from telegram import Update, Chat
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackContext
 from io import BytesIO
 from PIL import Image
@@ -100,6 +100,13 @@ def generate_meme(prompt: str) -> BytesIO:
 async def meme_command(update: Update, context: CallbackContext) -> None:
     """Handle the /meme command by generating a meme based on the user's location input."""
     user = update.message.from_user
+    chat_type = update.message.chat.type
+
+    if chat_type in [Chat.GROUP, Chat.SUPERGROUP]:
+        # Ensure bot is mentioned in group commands
+        if not context.bot.username in update.message.text:
+            return
+
     try:
         # Get the location from the command
         location = ' '.join(context.args)
