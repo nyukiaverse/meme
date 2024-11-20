@@ -95,11 +95,11 @@ capital_cities = [
     "Nairobi", "Tokyo", "Paris", "London", "Berlin", "Brasília", "Canberra", "Ottawa", "Washington D.C.", "Beijing",
     "Moscow", "Cairo", "Buenos Aires", "New Delhi", "Rome", "Madrid", "Seoul", "Bangkok", "Jakarta", "Pretoria",
     "Helsinki", "Oslo", "Stockholm", "Lisbon", "Vienna", "Bern", "Amsterdam", "Brussels", "Dublin", "Warsaw",
-    "Athens", "Havana", "Kingston", "Kigali", "Baghdad", "Tehran", "Riyadh", "Hanoi", "Manila", "Santiago",
+    "Athens", "Havana", "Kingston", "Kigali", "Baghdad", "New York", "Riyadh", "Hanoi", "Manila", "Santiago",
     "Lima", "Bogotá", "Caracas", "Quito", "San José", "Panama City", "Port-au-Prince", "Kingstown", "Castries", "Nassau",
     "Georgetown", "Paramaribo", "Port of Spain", "Bridgetown", "Belmopan", "Suva", "Apia", "Wellington", "Yamoussoukro",
     "Ouagadougou", "Bamako", "Accra", "Conakry", "Freetown", "Monrovia", "Dakar", "Bissau", "Mogadishu", "Addis Ababa",
-    "Asmara", "Juba", "Khartoum", "Rabat", "Algiers", "Tripoli", "Tunis", "Nouakchott", "Niamey", "Ndjamena", "Lusaka",
+    "Milan", "Dubai", "Sydney", "Rabat", "Algiers", "Tripoli", "Tunis", "Nouakchott", "Niamey", "Ndjamena", "Lusaka",
     "Harare", "Gaborone", "Windhoek", "Lilongwe", "Maputo", "Kampala", "Dodoma", "Antananarivo", "Victoria", "Port Louis",
     "Male", "Colombo", "Islamabad", "Kabul", "Kathmandu", "Thimphu", "Dhaka", "Bandar Seri Begawan", "Kuala Lumpur", "Singapore",
     "Rangoon", "Vientiane", "Phnom Penh", "Ulaanbaatar", "Bishkek", "Tashkent", "Dushanbe", "Ashgabat", "Astana", "Baku",
@@ -212,7 +212,7 @@ async def meme_command(update: Update, context: CallbackContext) -> None:
         meme_image = generate_meme(slogan, meme_idea_with_city)
         if meme_image:
             # Send the meme back to the user with additional text
-            caption = f"{slogan} We are Beelding in capital_city\n Play to Earn $WHIVE Trivia Game- http://nyukia.ai 💸"
+            caption = f"{slogan} To Bee or Not To Bee in {capital_city}🐝\n Play to Earn $WHIVE Trivia Game- http://nyukia.ai 💸"
             await update.message.reply_photo(photo=meme_image)
             await update.message.reply_text(caption)
         else:
