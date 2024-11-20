@@ -23,6 +23,10 @@ if not openai_api_key:
     logger.error("API key not found in environment. Please set OPENAI_API_KEY.")
     exit()
 
+if not TOKEN:
+    logger.error("Telegram bot token not found in environment. Please set TELEGRAM_BOT_TOKEN.")
+    exit()
+
 # List of slogans and meme ideas
 slogans_and_ideas = [
     ("Bee the Change. Power the World.", "A bee holding a miniature solar panel, with a background of CPUs mining in the hive."),
@@ -169,6 +173,7 @@ def generate_meme(slogan: str, meme_idea: str) -> BytesIO:
         output = BytesIO()
         response_image.save(output, format='PNG')
         output.seek(0)
+        logger.info("Meme generated successfully.")
         return output
     except subprocess.CalledProcessError as e:
         logger.error(f"Error occurred during cURL request: {e}")
@@ -237,6 +242,8 @@ async def welcome_new_member(update: Update, context: CallbackContext) -> None:
         except Exception as e:
             logger.error(f"Error deleting message: {e}")
 
+        logger.info("Sent welcome message to %s", username)
+
 def main() -> None:
     """Main function to run the Telegram bot."""
     # Check if the API key and token are available
@@ -252,6 +259,7 @@ def main() -> None:
     application.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, welcome_new_member))
 
     # Start the bot and run it until manually stopped
+    logger.info("Starting the bot...")
     application.run_polling()
 
 if __name__ == '__main__':
