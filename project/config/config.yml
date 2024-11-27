@@ -1,0 +1,17 @@
+bot:
+  cooldown_minutes: 5
+  max_daily_memes: 50
+  allowed_qualities: ["standard", "hd"]
+  default_quality: "standard"
+
+api:
+  retry_attempts: 3
+  timeout_seconds: 30
+  dalle_model: "dall-e-3"
+  image_size: "1024x1024"
+
+messages:
+  welcome: "Welcome to the Bee Meme Bot! 🐝"
+  cooldown: "Please wait {minutes} minutes before generating another meme."
+  error: "Sorry, something went wrong. Please try again later."
+  success: "Here's your meme! 🐝\n{slogan}\nEarn $WHIVE - http://nyukia.ai 💸" 

@@ -4,28 +4,41 @@ import subprocess
 import json
 import random
 from telegram import Update, Chat, Bot
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackContext
 from io import BytesIO
 from PIL import Image
 import requests
 from tenacity import retry, stop_after_attempt, wait_fixed
 import asyncio
+from flask import Flask, request, jsonify
 
 # Configure logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# OpenAI API key and Telegram bot token from environment variables
+# Environment variables
 openai_api_key = os.getenv('OPENAI_API_KEY')
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+TELEGRAM_CHANNEL_ID = os.getenv('TELEGRAM_CHANNEL_ID')
+ZAPIER_WEBHOOK_URL = os.getenv('ZAPIER_WEBHOOK_URL')
 
-if not openai_api_key:
-    logger.error("API key not found in environment. Please set OPENAI_API_KEY.")
-    exit()
+# Validate environment variables
+def validate_environment():
+    required_vars = {
+        'OPENAI_API_KEY': openai_api_key,
+        'TELEGRAM_BOT_TOKEN': TOKEN,
+        'TELEGRAM_CHANNEL_ID': TELEGRAM_CHANNEL_ID,
+        'ZAPIER_WEBHOOK_URL': ZAPIER_WEBHOOK_URL
+    }
+    
+    missing_vars = [name for name, value in required_vars.items() if not value]
+    
+    if missing_vars:
+        logger.error(f"Missing required environment variables: {', '.join(missing_vars)}")
+        exit(1)
 
-if not TOKEN:
-    logger.error("Telegram bot token not found in environment. Please set TELEGRAM_BOT_TOKEN.")
-    exit()
+# Initialize Telegram bot
+bot = Bot(token=TOKEN)
 
 # List of slogans and meme ideas
 slogans_and_ideas = [
@@ -90,6 +103,7 @@ slogans_and_ideas = [
     ("CPU Mining – Buzz for the Future.", "A happy bee flying through a futuristic landscape full of solar panels, representing mining for the future.")
 ]
 
+# List of random capital cities
 # List of random capital cities
 capital_cities = [
     "Nairobi", "Tokyo", "Paris", "London", "Berlin", "Brasília", "Canberra", "Ottawa", "Washington D.C.", "Beijing",
@@ -188,15 +202,9 @@ def generate_meme(slogan: str, meme_idea: str) -> BytesIO:
         raise
 
 async def meme_command(update: Update, context: CallbackContext) -> None:
-    """Handle the /meme command by generating a meme based on a random slogan and meme idea."""
+    """Handle the /meme command by generating a meme and posting it to Telegram."""
     user = update.message.from_user
     username = user.username if user.username else user.first_name
-    chat_type = update.message.chat.type
-
-    if chat_type in [Chat.GROUP, Chat.SUPERGROUP]:
-        # Ensure bot is mentioned in group commands
-        if not context.bot.username in update.message.text:
-            return
 
     try:
         # Randomly select a slogan, meme idea, and a capital city
@@ -204,7 +212,7 @@ async def meme_command(update: Update, context: CallbackContext) -> None:
         capital_city = random.choice(capital_cities)
 
         # Append the capital city to the meme idea
-        meme_idea_with_city = f"{meme_idea} The scene is set in {capital_city}. Draw in Tin Tin meme style."
+        meme_idea_with_city = f"{meme_idea} The scene is set in {capital_city}."
 
         logger.info("Generating meme for user %s with slogan: '%s' and meme idea: '%s'", username, slogan, meme_idea_with_city)
 
@@ -212,7 +220,7 @@ async def meme_command(update: Update, context: CallbackContext) -> None:
         meme_image = generate_meme(slogan, meme_idea_with_city)
         if meme_image:
             # Send the meme back to the user with additional text
-            caption = f"{slogan} To Bee or Not To Bee in {capital_city}🐝\n Play to Earn $WHIVE Trivia Game- http://nyukia.ai 💸"
+            caption = f"{slogan}\nEarn $WHIVE - http://nyukia.ai 💸"
             await update.message.reply_photo(photo=meme_image)
             await update.message.reply_text(caption)
         else:
@@ -228,39 +236,96 @@ async def meme_command(update: Update, context: CallbackContext) -> None:
         logger.error(f"Error generating meme: {e}")
         await update.message.reply_text("Sorry, there was an error generating your meme. Please try again later.")
 
-async def welcome_new_member(update: Update, context: CallbackContext) -> None:
-    """Welcome new members to the group and ask for their location."""
-    for member in update.message.new_chat_members:
-        username = member.username if member.username else member.first_name
-        welcome_message = f"Welcome {username}! Type /meme to get a custom meme."
-        message = await update.message.reply_text(welcome_message)
+async def post_to_telegram(meme_image: BytesIO, caption: str) -> bool:
+    """Post the generated meme to the Telegram channel."""
+    try:
+        await bot.send_photo(chat_id=TELEGRAM_CHANNEL_ID, photo=meme_image, caption=caption)
+        logger.info("Meme successfully posted to Telegram channel.")
+        return True
+    except Exception as e:
+        logger.error(f"Error posting to Telegram: {e}")
+        return False
 
-        # Wait for 15 seconds and then delete the message if no response
-        await asyncio.sleep(15)
-        try:
-            await message.delete()
-        except Exception as e:
-            logger.error(f"Error deleting message: {e}")
+# Flask app to handle Zapier requests
+app = Flask(__name__)
 
-        logger.info("Sent welcome message to %s", username)
+@app.route('/generate_meme', methods=['POST'])
+def generate_meme_zapier():
+    """Endpoint to generate a meme and post to Telegram when called by Zapier."""
+    try:
+        # Randomly select a slogan, meme idea, and a capital city
+        slogan, meme_idea = random.choice(slogans_and_ideas)
+        capital_city = random.choice(capital_cities)
+        meme_idea_with_city = f"{meme_idea} The scene is set in {capital_city}."
 
-def main() -> None:
-    """Main function to run the Telegram bot."""
-    # Check if the API key and token are available
-    if not openai_api_key or not TOKEN:
-        logger.error("API key or token not found. Make sure to set OPENAI_API_KEY and TELEGRAM_BOT_TOKEN environment variables.")
-        return
+        logger.info("Generating meme for Zapier with slogan: '%s' and meme idea: '%s'", slogan, meme_idea_with_city)
+
+        # Generate meme and get the URL
+        data = json.dumps({
+            "model": "dall-e-3",
+            "prompt": f"{slogan}\n{meme_idea_with_city}",
+            "n": 1,
+            "size": "1024x1024",
+            "quality": "hd",
+            "response_format": "url"
+        })
+
+        curl_command = [
+            "curl", "-X", "POST", "https://api.openai.com/v1/images/generations",
+            "-H", "Content-Type: application/json",
+            "-H", f"Authorization: Bearer {openai_api_key}",
+            "-d", data
+        ]
+
+        response = subprocess.run(curl_command, capture_output=True, text=True, check=True)
+        response_data = json.loads(response.stdout)
+        image_url = response_data['data'][0]['url']
+
+        # Download and prepare the image for Telegram
+        meme_image = BytesIO(requests.get(image_url).content)
+        caption = f"{slogan}\nEarn $WHIVE - http://nyukia.ai 💸"
+
+        # Post to Telegram
+        telegram_success = post_to_telegram(meme_image, caption)
+
+        if telegram_success:
+            return jsonify({
+                "status": "success",
+                "message": "Meme posted to Telegram successfully.",
+                "data": {
+                    "image_url": image_url,
+                    "slogan": slogan,
+                    "caption": caption
+                }
+            }), 200
+        else:
+            return jsonify({
+                "status": "error",
+                "message": "Failed to post meme to Telegram.",
+                "data": {
+                    "image_url": image_url,
+                    "slogan": slogan,
+                    "caption": caption
+                }
+            }), 500
+    except Exception as e:
+        logger.error(f"Error in generate_meme_zapier: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+if __name__ == '__main__':
+    validate_environment()
+    # Run the Flask app to handle incoming requests from Zapier
+    app.run(host='0.0.0.0', port=5000)
 
     # Create the Telegram bot application
     application = ApplicationBuilder().token(TOKEN).build()
 
     # Add handlers for the bot commands and messages
     application.add_handler(CommandHandler("meme", meme_command))
-    application.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, welcome_new_member))
 
     # Start the bot and run it until manually stopped
     logger.info("Starting the bot...")
     application.run_polling()
-
-if __name__ == '__main__':
-    main()
